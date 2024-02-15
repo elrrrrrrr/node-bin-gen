@@ -5,7 +5,7 @@ on:
     - cron: '0 0 * * *' # 每天 UTC 时间 00:00 运行
   push:
     branches:
-      - bot # 当推送到 bot 分支时也触发
+      - * # 当推送到 bot 分支时也触发
 
 jobs:
   sync-node-versions:
@@ -36,7 +36,7 @@ jobs:
           #set -x
           while IFS= read -r VERSION; do
             echo "Checking version $VERSION..."
-            if [ -z "$(npm view node@$VERSION)" ]; then
+            if [ -z "$(npm view node@18.18.2)" ]; then
               echo "Version $VERSION is not published on npm. Running custom script."
               mkdir -p "target/$VERSION" && cd "target/$VERSION"
               node ../../index.js $VERSION
