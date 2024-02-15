@@ -12,10 +12,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Set up Node.js
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v3
         with:
           node-version: '20' # 选择一个合适的 Node.js 版本进行操作
 
@@ -24,11 +24,12 @@ jobs:
 
       - name: Fetch Node.js versions released in the last 5 days
         run: |
-          set -x
+          #set -x
           DATE_5_DAYS_AGO=$(date --date='5 days ago' +%Y-%m-%d)
           curl -s https://nodejs.org/dist/index.json | jq --arg DATE "$DATE_5_DAYS_AGO" -r '.[] | select(.date >= $DATE) | .version' > versions.txt
+          echo "Node.js versions released in the last 5 days:"
           cat versions.txt
-          set +x
+          #set +x
 
       - name: Check each version and sync if not published
         run: |
@@ -44,7 +45,7 @@ jobs:
                   echo "Publishing directory: $dir"
                   cd "$dir"
                   npm whoami
-                  npm publish --dry-run
+                  npm publish --dry-run #debug
                   cd ..
                 else
                   echo "Directory $dir not found."
@@ -55,6 +56,6 @@ jobs:
               echo "Version $VERSION is already published on npm. Skipping."
             fi
           done < versions.txt
-          set +x
+          #set +x
         env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{secrets.npm_token}}
