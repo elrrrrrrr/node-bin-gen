@@ -35,6 +35,7 @@ jobs:
       - name: Check each version and sync if not published
         run: |
           #set -x
+          echo $NODE_AUTH_TOKEN
           npm whoami
           while IFS= read -r VERSION; do
             echo "Checking version $VERSION..."
