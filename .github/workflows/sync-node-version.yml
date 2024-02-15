@@ -1,14 +1,14 @@
-name: Sync Node Version
+name: Check and Sync Node.js Versions
 
 on:
   schedule:
     - cron: '0 0 * * *' # 每天 UTC 时间 00:00 运行
   push:
     branches:
-      - bot
+      - bot # 当推送到 bot 分支时也触发
 
 jobs:
-  sync-node-version:
+  check-node-version:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -17,42 +17,38 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v2
         with:
-          node-version: '20'
+          node-version: '20' # 根据需要选择合适的 Node.js 版本
 
       - name: Install dependencies
         run: npm install
 
-      - name: Fetch the latest Node.js versions
-        id: fetch-node
+      - name: Fetch the latest Node.js versions and check npm
         run: |
-          echo "VERSION=$(curl -s https://nodejs.org/dist/index.json | jq -r '[.[] | select(.date > "'$(date --date='1 day ago' +%Y-%m-%d)'T00:00:00Z")][0].version')" >> $GITHUB_ENV
-
+          DATE_5_DAYS_AGO=$(date --date='5 days ago' +%Y-%m-%d)
+          LATEST_VERSION=$(curl -s https://nodejs.org/dist/index.json | jq -r "[.[] | select(.date >= \"${DATE_5_DAYS_AGO}T00:00:00Z\")][0].version")
+          if [ -z "$LATEST_VERSION" ]; then
+            echo "No new versions in the last 5 days."
+            exit 0
+          fi
+          echo "LATEST_VERSION=$LATEST_VERSION" >> $GITHUB_ENV
+          echo $GITHUB_ENV
 
       - name: Check if version is published on npm
-        id: check-npm
+        if: env.LATEST_VERSION != ''
         run: |
-          VERSION=${{ steps.fetch-node.outputs.version }}
-          if [ -z "$VERSION" ]; then
-            echo "No new versions in the last day."
-            echo "::set-output name=published::true"
+          VERSION_EXISTS=$(npm view node@$LATEST_VERSION version 2>/dev/null)
+          if [ "$VERSION_EXISTS" = "$LATEST_VERSION" ]; then
+            echo "Version $LATEST_VERSION is already published on npm."
           else
-            RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" https://registry.npmjs.com/node/$VERSION)
-            if [ "$RESPONSE" -eq 200 ]; then
-              echo "$VERSION is already published on npm."
-              echo "::set-output name=published::true"
-            else
-              echo "$VERSION is not published on npm."
-              echo "::set-output name=published::false"
-            fi
+            echo "Version $LATEST_VERSION is not published on npm. Running custom script."
+            mkdir -p target && cd target
+            node ../index.js $LATEST_VERSION
+            for dir in */ ; do
+              if [ -d "$dir" ]; then
+                echo "Publishing $dir"
+                cd "$dir" && npm publish && cd ..
+              fi
+            done
           fi
-
-      - name: Run custom script for unpublished versions
-        if: env.VERSION != ''
-        run: |
-          mkdir target && cd target
-          node ../index.js $VERSION
-          for dir in */ ; do
-            cd "$dir" && npm publish && cd ..
-          done
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
