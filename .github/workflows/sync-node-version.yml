@@ -32,7 +32,7 @@ jobs:
           set -x
           while IFS= read -r VERSION; do
             echo "Checking version $VERSION..."
-            if npm view node@$VERSION > /dev/null 2>&1; then
+            if npm view node@$VERSION; then
               echo "Version $VERSION is already published on npm. Skipping."
             else
               echo "Version $VERSION is not published on npm. Running custom script."
