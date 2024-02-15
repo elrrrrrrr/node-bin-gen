@@ -44,7 +44,7 @@ jobs:
                 if [ -d "$dir" ]; then
                   echo "Publishing directory: $dir"
                   cd "$dir"
-                  # npm whoami
+                  npm whoami
                   npm publish --dry-run #debug
                   cd ..
                 else
