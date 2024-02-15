@@ -22,7 +22,7 @@ jobs:
       - name: Fetch Node.js versions released in the last 5 days
         run: |
           set -x
-          DATE_5_DAYS_AGO=$(date --date='50 days ago' +%Y-%m-%d)
+          DATE_5_DAYS_AGO=$(date --date='5 days ago' +%Y-%m-%d)
           curl -s https://nodejs.org/dist/index.json | jq --arg DATE "$DATE_5_DAYS_AGO" -r '.[] | select(.date >= $DATE) | .version' > versions.txt
           cat versions.txt
           set +x
@@ -34,7 +34,8 @@ jobs:
             echo "Checking version $VERSION..."
             if [ -z "$(npm view node@$VERSION)" ]; then
               echo "Version $VERSION is not published on npm. Running custom script."
-              node ../../index.js $VERSION
+              mkdir -p "target/$VERSION" && cd "target/$VERSION"
+              node ../index.js $VERSION
               for dir in */ ; do
                 if [ -d "$dir" ]; then
                   echo "Publishing directory: $dir"
