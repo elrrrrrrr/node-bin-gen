@@ -34,6 +34,7 @@ jobs:
       - name: Check each version and sync if not published
         run: |
           #set -x
+          npm whoami
           while IFS= read -r VERSION; do
             echo "Checking version $VERSION..."
             if [ -z "$(npm view node@$VERSION)" ]; then
@@ -44,7 +45,6 @@ jobs:
                 if [ -d "$dir" ]; then
                   echo "Publishing directory: $dir"
                   cd "$dir"
-                  npm whoami
                   npm publish --dry-run #debug
                   cd ..
                 else
