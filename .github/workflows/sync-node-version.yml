@@ -26,7 +26,6 @@ jobs:
       - name: Fetch Node.js versions released in the last 5 days
         run: |
           #set -x
-          cat ~/.npmrc
           DATE_5_DAYS_AGO=$(date --date='2 days ago' +%Y-%m-%d)
           curl -s https://nodejs.org/dist/index.json | jq --arg DATE "$DATE_2_DAYS_AGO" -r '.[] | select(.date >= $DATE) | .version' > versions.txt
           echo "Node.js versions released in the last 5 days:"
