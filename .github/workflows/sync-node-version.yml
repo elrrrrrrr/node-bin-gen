@@ -26,8 +26,8 @@ jobs:
       - name: Fetch Node.js versions released in the last 5 days
         run: |
           #set -x
-          DATE_5_DAYS_AGO=$(date --date='2 days ago' +%Y-%m-%d)
-          curl -s https://nodejs.org/dist/index.json | jq --arg DATE "$DATE_2_DAYS_AGO" -r '.[] | select(.date >= $DATE) | .version' > versions.txt
+          DATE_5_DAYS_AGO=$(date --date='5 days ago' +%Y-%m-%d)
+          curl -s https://nodejs.org/dist/index.json | jq --arg DATE "$DATE_5_DAYS_AGO" -r '.[] | select(.date >= $DATE) | .version' > versions.txt
           echo "Node.js versions released in the last 5 days:"
           cat versions.txt
           #set +x
@@ -35,7 +35,6 @@ jobs:
       - name: Check each version and sync if not published
         run: |
           #set -x
-          echo $NODE_AUTH_TOKEN
           npm whoami
           while IFS= read -r VERSION; do
             echo "Checking version $VERSION..."
@@ -60,4 +59,4 @@ jobs:
           done < versions.txt
           #set +x
         env:
-          NODE_AUTH_TOKEN: ${{secrets.npm_token}}
+          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
