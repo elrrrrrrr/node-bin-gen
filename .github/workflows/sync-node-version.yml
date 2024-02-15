@@ -17,25 +17,38 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v2
         with:
-          node-version: '20' # 根据需要选择合适的 Node.js 版本
+          node-version: '14' # 选择一个合适的 Node.js 版本进行操作
 
-      - name: Install jq
-        run: sudo apt-get install jq
-
-      - name: Fetch Node.js versions released in the last 5 days and check npm
+      - name: Fetch Node.js versions released in the last 5 days
         run: |
+          set -x
           DATE_5_DAYS_AGO=$(date --date='5 days ago' +%Y-%m-%d)
           curl -s https://nodejs.org/dist/index.json | jq --arg DATE "$DATE_5_DAYS_AGO" -r '.[] | select(.date >= $DATE) | .version' > versions.txt
+          cat versions.txt
+          set +x
+
+      - name: Check each version and sync if not published
+        run: |
+          set -x
           while IFS= read -r VERSION; do
-            if [ -z "$(npm view node@$VERSION version 2>/dev/null)" ]; then
-              echo "Version $VERSION is not published on npm. Running custom script."
-              mkdir -p "target/$VERSION" && cd "target/$VERSION"
-              node ../../../index.js $VERSION
-              npm publish
-              cd ../../..
-            else
+            echo "Checking version $VERSION..."
+            if npm view node@$VERSION > /dev/null 2>&1; then
               echo "Version $VERSION is already published on npm. Skipping."
+            else
+              echo "Version $VERSION is not published on npm. Running custom script."
+              node ../../index.js $VERSION
+              for dir in */ ; do
+                if [ -d "$dir" ]; then
+                  echo "Publishing directory: $dir"
+                  cd "$dir"
+                  npm publish
+                  cd ..
+                else
+                  echo "Directory $dir not found."
+                fi
+              done
             fi
           done < versions.txt
+          set +x
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
