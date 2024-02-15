@@ -25,7 +25,8 @@ jobs:
       - name: Fetch the latest Node.js versions
         id: fetch-node
         run: |
-          echo "::set-output name=version::$(curl -s https://nodejs.org/dist/index.json | jq -r '[.[] | select(.date > "'$(date --date='5 day ago' +%Y-%m-%d)'T00:00:00Z")][0].version')"
+          echo "VERSION=$(curl -s https://nodejs.org/dist/index.json | jq -r '[.[] | select(.date > "'$(date --date='1 day ago' +%Y-%m-%d)'T00:00:00Z")][0].version')" >> $GITHUB_ENV
+
 
       - name: Check if version is published on npm
         id: check-npm
@@ -46,17 +47,12 @@ jobs:
           fi
 
       - name: Run custom script for unpublished versions
-        if: steps.check-npm.outputs.published == 'false'
+        if: env.VERSION != ''
         run: |
-          # 创建 target 目录并进入
           mkdir target && cd target
-
-          # 在 target 目录下执行你的脚本，假设它会在这里生成子目录
-          node ../index.js ${{ steps.fetch-node.outputs.version }}
-
-          # 对每个生成的子目录执行 npm publish
+          node ../index.js $VERSION
           for dir in */ ; do
-            cd "$dir" && npm publish --dry-run && cd ..
+            cd "$dir" && npm publish && cd ..
           done
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
