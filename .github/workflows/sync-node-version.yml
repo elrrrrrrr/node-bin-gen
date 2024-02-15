@@ -32,9 +32,7 @@ jobs:
           set -x
           while IFS= read -r VERSION; do
             echo "Checking version $VERSION..."
-            if npm view node@$VERSION; then
-              echo "Version $VERSION is already published on npm. Skipping."
-            else
+            if [ -z "$(npm view node@$VERSION)" ]; then
               echo "Version $VERSION is not published on npm. Running custom script."
               node ../../index.js $VERSION
               for dir in */ ; do
@@ -47,6 +45,8 @@ jobs:
                   echo "Directory $dir not found."
                 fi
               done
+            else
+              echo "Version $VERSION is already published on npm. Skipping."
             fi
           done < versions.txt
           set +x
