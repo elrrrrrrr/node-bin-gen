@@ -46,6 +46,7 @@ jobs:
                   echo "Directory $dir not found."
                 fi
               done
+              cd ../
             else
               echo "Version $VERSION is already published on npm. Skipping."
             fi
