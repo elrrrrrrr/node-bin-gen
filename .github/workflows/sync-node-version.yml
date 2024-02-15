@@ -8,7 +8,7 @@ on:
       - bot # 当推送到 bot 分支时也触发
 
 jobs:
-  check-node-version:
+  sync-node-versions:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -19,36 +19,23 @@ jobs:
         with:
           node-version: '20' # 根据需要选择合适的 Node.js 版本
 
-      - name: Install dependencies
-        run: npm install
+      - name: Install jq
+        run: sudo apt-get install jq
 
-      - name: Fetch the latest Node.js versions and check npm
+      - name: Fetch Node.js versions released in the last 5 days and check npm
         run: |
           DATE_5_DAYS_AGO=$(date --date='5 days ago' +%Y-%m-%d)
-          LATEST_VERSION=$(curl -s https://nodejs.org/dist/index.json | jq -r "[.[] | select(.date >= \"${DATE_5_DAYS_AGO}T00:00:00Z\")][0].version")
-          if [ -z "$LATEST_VERSION" ]; then
-            echo "No new versions in the last 5 days."
-            exit 0
-          fi
-          echo "LATEST_VERSION=$LATEST_VERSION" >> $GITHUB_ENV
-          echo $GITHUB_ENV
-
-      - name: Check if version is published on npm
-        if: env.LATEST_VERSION != ''
-        run: |
-          VERSION_EXISTS=$(npm view node@$LATEST_VERSION version 2>/dev/null)
-          if [ "$VERSION_EXISTS" = "$LATEST_VERSION" ]; then
-            echo "Version $LATEST_VERSION is already published on npm."
-          else
-            echo "Version $LATEST_VERSION is not published on npm. Running custom script."
-            mkdir -p target && cd target
-            node ../index.js $LATEST_VERSION
-            for dir in */ ; do
-              if [ -d "$dir" ]; then
-                echo "Publishing $dir"
-                cd "$dir" && npm publish && cd ..
-              fi
-            done
-          fi
+          curl -s https://nodejs.org/dist/index.json | jq --arg DATE "$DATE_5_DAYS_AGO" -r '.[] | select(.date >= $DATE) | .version' > versions.txt
+          while IFS= read -r VERSION; do
+            if [ -z "$(npm view node@$VERSION version 2>/dev/null)" ]; then
+              echo "Version $VERSION is not published on npm. Running custom script."
+              mkdir -p "target/$VERSION" && cd "target/$VERSION"
+              node ../../../index.js $VERSION
+              npm publish
+              cd ../../..
+            else
+              echo "Version $VERSION is already published on npm. Skipping."
+            fi
+          done < versions.txt
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
