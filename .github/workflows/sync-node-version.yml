@@ -33,7 +33,7 @@ jobs:
 
       - name: Check each version and sync if not published
         run: |
-          set -x
+          #set -x
           while IFS= read -r VERSION; do
             echo "Checking version $VERSION..."
             if [ -z "$(npm view node@$VERSION)" ]; then
